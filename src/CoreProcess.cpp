@@ -1,5 +1,6 @@
 #include "CoreProcess.h"
 #include <Platform\Process.h>
+#include <Platform\PathUtils.h>
 
 namespace CR
 {
@@ -10,6 +11,7 @@ namespace CR
 		public:
 			CoreProcess(std::unique_ptr<CR::Platform::IProcess> a_process);
 			virtual ~CoreProcess() = default;
+			bool WaitForClose(const std::chrono::milliseconds& a_maxWait) override;
 		private:
 			std::unique_ptr<CR::Platform::IProcess> m_process;
 		};
@@ -24,9 +26,15 @@ CoreProcess::CoreProcess(std::unique_ptr<CR::Platform::IProcess> a_process) :
 
 }
 
+bool CoreProcess::WaitForClose(const std::chrono::milliseconds& a_maxWait)
+{
+	return m_process->WaitForClose(a_maxWait);
+}
+
 std::unique_ptr<ICoreProcess> CR::LibRetroServer::CreateCoreProcess()
 {
-	auto process = CR::Platform::CRCreateProcess("LibRetroServerCore", "");
+	auto corePath = CR::Platform::RelativeToAbsolute("LibRetroServerCore.exe");
+	auto process = CR::Platform::CRCreateProcess(corePath.c_str(), "");
 	if (!process)
 		return nullptr;
 	return std::make_unique<CoreProcess>(std::move(process));
