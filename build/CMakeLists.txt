@@ -5,6 +5,7 @@ project (LibRetroServer)
 add_subdirectory("${PROJECT_SOURCE_DIR}/../../LibRetroServerCore/build" "${PROJECT_SOURCE_DIR}/../../LibRetroServerCore_build")
 include_directories("${PROJECT_SOURCE_DIR}/../../core/inc")
 include_directories("${PROJECT_SOURCE_DIR}/../../Platform/inc")
+include_directories("${PROJECT_SOURCE_DIR}/../../LibRetroServerCore/inc")
 
 include_directories("${PROJECT_SOURCE_DIR}/../inc/LibRetroServer")
 
