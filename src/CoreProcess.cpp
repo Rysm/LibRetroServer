@@ -4,6 +4,7 @@
 #include <Platform\Guid.h>
 #include <Platform\PipeServer.h>
 #include <LibRetroServer\Messages.h>
+#include <Platform\Event.h>
 
 namespace CR
 {
@@ -22,9 +23,16 @@ namespace CR
 			void OnPipeWriteFinished(void* a_msg, size_t a_msgSize);
 			void OnPipeReadFinished(void* a_msg, size_t a_msgSize);
 
+			void OnCoreAcceptingMsgs(void*, size_t);
+
 			std::string m_pipeName;
 			std::unique_ptr<CR::Platform::IProcess> m_process;
 			std::unique_ptr<CR::Platform::IPipeServer> m_pipe;
+			
+			using MsgHanderT = void (CoreProcess::*)(void*, size_t);
+			MsgHanderT m_msgHandlers[1] = {&CoreProcess::OnCoreAcceptingMsgs};
+
+			Platform::Event m_clientInitEvent;
 		};
 	}
 }
@@ -34,6 +42,7 @@ using namespace CR;
 
 CoreProcess::CoreProcess()
 {
+	m_clientInitEvent.Reset();
 }
 
 bool CoreProcess::InitializeProcess()
@@ -62,6 +71,8 @@ bool CoreProcess::WaitForClose(const std::chrono::milliseconds& a_maxWait)
 
 void CoreProcess::Initialize(const char* a_coreName, const char* a_gameName)
 {
+	m_clientInitEvent.Wait();
+
 	auto* msg = new LibRetroServer::Messages::InitializeMessage;
 	strcpy_s(msg->CorePath, a_coreName);
 	strcpy_s(msg->GamePath, a_gameName);
@@ -81,7 +92,17 @@ void CoreProcess::OnPipeWriteFinished(void* a_msg, size_t)
 
 void CoreProcess::OnPipeReadFinished(void* a_msg, size_t a_msgSize)
 {
-	a_msg; a_msgSize;
+	static_assert(Messages::NumClientMessages == (sizeof(m_msgHandlers) / sizeof(m_msgHandlers[0])), "incorect number of msg handlers");
+	assert(a_msgSize >= sizeof(Messages::ClientMessageTypeT));
+	auto msgType = (Messages::ClientMessageTypeT*)a_msg;
+	assert(*msgType < Messages::NumClientMessages);
+	if(m_msgHandlers[*msgType])
+		(this->*m_msgHandlers[*msgType])(a_msg, a_msgSize);
+}
+
+void CoreProcess::OnCoreAcceptingMsgs(void*, size_t)
+{
+	m_clientInitEvent.Notify();
 }
 
 std::unique_ptr<ICoreProcess> CR::LibRetroServer::CreateCoreProcess()
