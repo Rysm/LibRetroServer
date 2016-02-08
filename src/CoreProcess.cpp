@@ -5,6 +5,7 @@
 #include <Platform\PipeServer.h>
 #include <LibRetroServer\Messages.h>
 #include <Platform\Event.h>
+#include <Platform\SharedMemory.h>
 
 namespace CR
 {
@@ -28,6 +29,7 @@ namespace CR
 			std::string m_pipeName;
 			std::unique_ptr<CR::Platform::IProcess> m_process;
 			std::unique_ptr<CR::Platform::IPipeServer> m_pipe;
+			std::unique_ptr<CR::Platform::ISharedMemory> m_sharedMemory;
 			
 			using MsgHanderT = void (CoreProcess::*)(void*, size_t);
 			MsgHanderT m_msgHandlers[1] = {&CoreProcess::OnCoreAcceptingMsgs};
@@ -60,7 +62,7 @@ bool CoreProcess::InitializeProcess()
 	m_process = CR::Platform::CRCreateProcess(corePath.c_str(), pipeGuid.ToStringClean().c_str());
 	if(!m_process)
 		return false;
-
+	
 	return true;
 }
 
